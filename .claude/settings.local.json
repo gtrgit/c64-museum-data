@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(jq:*)",
+      "Bash(python3:*)",
+      "Bash(/dev/null)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}
