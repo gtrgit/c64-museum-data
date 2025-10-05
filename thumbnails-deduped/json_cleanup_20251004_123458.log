@@ -1,0 +1,41 @@
+﻿JSON Duplicate Cleanup Log
+Generated: 10/04/2025 12:34:58
+WhatIf Mode: False
+Word Count for Base ID: 4
+
+Input File: c64_software_cleaned.json
+Output File: C:\Users\grant\projects\C64-Museum\thumbnails-deduped\c64_software_cleaned_deduplicated.json
+
+Total entries found: 10141
+Unique game identifiers: 6680
+Games with duplicates: 1487
+Entries removed: 3461
+Final entry count: 6680
+
+Word Count Distribution:
+  1 words: 815 identifiers
+  10 words: 591 identifiers
+  11 words: 434 identifiers
+  12 words: 306 identifiers
+  13 words: 194 identifiers
+  14 words: 101 identifiers
+  15 words: 79 identifiers
+  16 words: 20 identifiers
+  17 words: 9 identifiers
+  18 words: 4 identifiers
+  19 words: 6 identifiers
+  2 words: 546 identifiers
+  3 words: 629 identifiers
+  4 words: 739 identifiers
+  5 words: 1042 identifiers
+  6 words: 1404 identifiers
+  7 words: 1345 identifiers
+  8 words: 1035 identifiers
+  9 words: 842 identifiers
+
+
+Settings Used:
+  Base Identifier: First 4 words separated by '_'
+  Sorting: Alphabetical by identifier (A-Z)
+  Keep: First entry in sorted order per base identifier
+  Remove: All subsequent entries with same base identifier

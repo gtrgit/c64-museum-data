@@ -1,0 +1,205 @@
+# FILENAME: remove_duplicates.ps1
+# Remove Duplicate Game Folders Based on First N Words
+# Run this script from the parent directory containing all the game folders
+
+param(
+    [string]$FolderPath = ".",
+    [int]$WordCount = 4,        # Number of words from left to use as base identifier
+    [switch]$WhatIf = $true     # Set to $false to actually delete folders
+)
+
+Write-Host "Starting duplicate folder cleanup using first $WordCount words..." -ForegroundColor Green
+Write-Host "Folder Path: $FolderPath" -ForegroundColor Yellow
+Write-Host "WhatIf Mode: $WhatIf" -ForegroundColor Yellow
+
+# Get all directories (no prefix filtering)
+$allFolders = Get-ChildItem -Path $FolderPath -Directory
+Write-Host "Found $($allFolders.Count) total folders" -ForegroundColor Cyan
+
+# Function to extract base game identifier from first N words
+function Get-BaseGameIdentifier {
+    param(
+        [string]$FolderName,
+        [int]$WordCount
+    )
+    
+    # Split by underscore and take first N words
+    $words = $FolderName -split '_'
+    
+    if ($words.Count -ge $WordCount) {
+        # Join first N words back together
+        $baseId = ($words[0..($WordCount-1)] -join '_')
+    } else {
+        # If folder has fewer words than WordCount, use all of them
+        $baseId = $FolderName
+    }
+    
+    return $baseId
+}
+
+# Group folders by base identifier
+$groupedFolders = @{}
+$debugInfo = @()
+
+foreach ($folder in $allFolders) {
+    $baseId = Get-BaseGameIdentifier -FolderName $folder.Name -WordCount $WordCount
+    
+    if (-not $groupedFolders.ContainsKey($baseId)) {
+        $groupedFolders[$baseId] = @()
+    }
+    $groupedFolders[$baseId] += $folder
+    
+    # Store debug info
+    $debugInfo += [PSCustomObject]@{
+        FolderName = $folder.Name
+        BaseIdentifier = $baseId
+        WordCount = ($folder.Name -split '_').Count
+    }
+}
+
+Write-Host "Grouped into $($groupedFolders.Count) unique game identifiers" -ForegroundColor Cyan
+
+# Show some examples of grouping for verification
+Write-Host "`n=== GROUPING EXAMPLES (First 10) ===" -ForegroundColor Yellow
+$exampleCount = 0
+foreach ($baseId in ($groupedFolders.Keys | Sort-Object)[0..9]) {
+    if ($groupedFolders[$baseId].Count -gt 1) {
+        Write-Host "`nBase ID: $baseId" -ForegroundColor Magenta
+        foreach ($folder in ($groupedFolders[$baseId] | Sort-Object Name)) {
+            Write-Host "  - $($folder.Name)" -ForegroundColor Gray
+        }
+        $exampleCount++
+        if ($exampleCount -ge 5) { break }  # Show max 5 examples
+    }
+}
+
+# Ask for confirmation if not in WhatIf mode
+if (-not $WhatIf) {
+    Write-Host "`nWARNING: This will permanently delete folders!" -ForegroundColor Red
+    $confirmation = Read-Host "Type 'DELETE' to confirm you want to proceed"
+    if ($confirmation -ne 'DELETE') {
+        Write-Host "Operation cancelled." -ForegroundColor Yellow
+        exit
+    }
+}
+
+# Process each group
+$totalToDelete = 0
+$duplicateGroups = 0
+$deletionLog = @()
+
+foreach ($baseId in $groupedFolders.Keys) {
+    $folders = $groupedFolders[$baseId]
+    
+    if ($folders.Count -gt 1) {
+        $duplicateGroups++
+        
+        # Sort alphabetically and keep the first one
+        $sortedFolders = $folders | Sort-Object Name
+        $keepFolder = $sortedFolders[0]
+        $deleteFolders = $sortedFolders[1..($sortedFolders.Count - 1)]
+        
+        Write-Host "`nBase ID: $baseId" -ForegroundColor Yellow
+        Write-Host "  KEEPING: $($keepFolder.Name)" -ForegroundColor Green
+        
+        foreach ($deleteFolder in $deleteFolders) {
+            Write-Host "  DELETE:  $($deleteFolder.Name)" -ForegroundColor Red
+            $totalToDelete++
+            
+            $logEntry = [PSCustomObject]@{
+                BaseIdentifier = $baseId
+                Action = if ($WhatIf) { "WOULD DELETE" } else { "DELETE" }
+                FolderName = $deleteFolder.Name
+                KeptFolder = $keepFolder.Name
+                Status = "Pending"
+                Error = ""
+            }
+            
+            if (-not $WhatIf) {
+                try {
+                    Remove-Item -Path $deleteFolder.FullName -Recurse -Force
+                    Write-Host "    [SUCCESS] Deleted successfully" -ForegroundColor DarkRed
+                    $logEntry.Status = "Deleted"
+                } catch {
+                    Write-Host "    [ERROR] Error deleting: $($_.Exception.Message)" -ForegroundColor Magenta
+                    $logEntry.Status = "Error"
+                    $logEntry.Error = $_.Exception.Message
+                }
+            } else {
+                $logEntry.Status = "Dry Run"
+            }
+            
+            $deletionLog += $logEntry
+        }
+    }
+}
+
+Write-Host "`n=== SUMMARY ===" -ForegroundColor Green
+Write-Host "Total folders found: $($allFolders.Count)" -ForegroundColor Cyan
+Write-Host "Unique game identifiers (first $WordCount words): $($groupedFolders.Count)" -ForegroundColor Cyan  
+Write-Host "Games with duplicates: $duplicateGroups" -ForegroundColor Yellow
+Write-Host "Folders $(if($WhatIf){'to delete'}else{'deleted'}): $totalToDelete" -ForegroundColor Red
+
+# Statistics about word count distribution
+$wordCountStats = $debugInfo | Group-Object WordCount | Sort-Object Name
+Write-Host "`n=== WORD COUNT DISTRIBUTION ===" -ForegroundColor Cyan
+foreach ($stat in $wordCountStats) {
+    Write-Host "Folders with $($stat.Name) words: $($stat.Count)" -ForegroundColor Gray
+}
+
+if ($WhatIf) {
+    Write-Host "`nThis was a DRY RUN - no folders were actually deleted." -ForegroundColor Yellow
+    Write-Host "To actually delete the duplicates, run:" -ForegroundColor Yellow
+    Write-Host ".\remove_duplicates.ps1 -WordCount $WordCount -WhatIf:`$false" -ForegroundColor White
+} else {
+    Write-Host "`nCleanup completed!" -ForegroundColor Green
+}
+
+# Create detailed log files
+$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$logFile = "duplicate_cleanup_$timestamp.log"
+$csvFile = "deletion_log_$timestamp.csv"
+
+# Text log
+$logContent = @"
+Duplicate Folder Cleanup Log
+Generated: $(Get-Date)
+WhatIf Mode: $WhatIf
+Word Count for Base ID: $WordCount
+
+Total folders found: $($allFolders.Count)
+Unique game identifiers: $($groupedFolders.Count)
+Games with duplicates: $duplicateGroups
+Folders $(if($WhatIf){'to delete'}else{'deleted'}): $totalToDelete
+
+Word Count Distribution:
+$($wordCountStats | ForEach-Object { "  $($_.Name) words: $($_.Count) folders" } | Out-String)
+
+Settings Used:
+  Folder Path: $FolderPath
+  Base Identifier: First $WordCount words separated by '_'
+  Sorting: Alphabetical (A-Z)
+  Keep: First folder in sorted order
+  Delete: All subsequent folders with same base identifier
+"@
+
+$logContent | Out-File -FilePath $logFile -Encoding UTF8
+
+# CSV log for detailed analysis
+$deletionLog | Export-Csv -Path $csvFile -NoTypeInformation -Encoding UTF8
+
+Write-Host "`nLogs saved:" -ForegroundColor Cyan
+Write-Host "  Text log: $logFile" -ForegroundColor Gray
+Write-Host "  CSV log: $csvFile" -ForegroundColor Gray
+
+# Optional: Show folders that might need manual review (very few words)
+$shortNameFolders = $debugInfo | Where-Object { $_.WordCount -lt $WordCount }
+if ($shortNameFolders.Count -gt 0) {
+    Write-Host "`n=== FOLDERS WITH FEWER THAN $WordCount WORDS (Manual Review Suggested) ===" -ForegroundColor Yellow
+    $shortNameFolders | ForEach-Object { Write-Host "  $($_.FolderName) ($($_.WordCount) words)" -ForegroundColor Gray }
+}
+
+Write-Host "`nTips:" -ForegroundColor Cyan
+Write-Host "  Check the generated log files for detailed information" -ForegroundColor Gray
+Write-Host "  Keep backups of your original files before running with -WhatIf:false" -ForegroundColor Gray
+Write-Host "  You can adjust WordCount parameters if needed" -ForegroundColor Gray

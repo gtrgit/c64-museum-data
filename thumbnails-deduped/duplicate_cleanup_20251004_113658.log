@@ -1,0 +1,35 @@
+﻿Duplicate Folder Cleanup Log
+Generated: 10/04/2025 11:36:58
+WhatIf Mode: True
+Word Count for Base ID: 4
+
+Total folders found: 1361
+Unique game identifiers: 533
+Games with duplicates: 342
+Folders to delete: 828
+
+Word Count Distribution:
+  10 words: 196 folders
+  11 words: 146 folders
+  12 words: 102 folders
+  13 words: 60 folders
+  14 words: 36 folders
+  15 words: 22 folders
+  16 words: 4 folders
+  17 words: 5 folders
+  18 words: 1 folders
+  19 words: 1 folders
+  4 words: 1 folders
+  5 words: 25 folders
+  6 words: 92 folders
+  7 words: 185 folders
+  8 words: 230 folders
+  9 words: 255 folders
+
+
+Settings Used:
+  Folder Path: .
+  Base Identifier: First 4 words separated by '_'
+  Sorting: Alphabetical (A-Z)
+  Keep: First folder in sorted order
+  Delete: All subsequent folders with same base identifier
