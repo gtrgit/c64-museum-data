@@ -1,0 +1,25 @@
+﻿JSON Path Update Log
+Generated: 10/05/2025 21:29:46
+WhatIf Mode: False
+
+Input File: c64_software_cleaned.json
+Output File: C:\Users\grant\projects\C64-Museum\c64-museum-data\c64_software_cleaned_yearized.json
+Thumbnails Path: ..\thumbnails-deduped
+
+Total entries: 6680
+Updated with year paths: 5307
+Unknown year: 625
+Missing folders: 734
+No change needed: 14
+
+Year folders found: 17
+Available years: 1976, 1977, 1978, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993
+
+JSON Structure Changes:
+- Added 'thumbnailPath' field with year-based paths (e.g., "1983/GameName_Publisher")
+- Added 'pathWarning' field for entries with issues (will be removed in final version)
+
+Next Steps:
+1. Test the updated JSON in your Decentraland scene
+2. Update your scene code to use 'thumbnailPath' instead of 'identifier' for thumbnail loading
+3. Remove 'pathWarning' fields if everything works correctly
